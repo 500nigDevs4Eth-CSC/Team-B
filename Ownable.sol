@@ -3,7 +3,8 @@ pragma solidity ^0.5.0;
 import "../GSN/CertVerify.sol";
 
 /**
- * Copied from https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/ownership/Ownable.sol
+ * Copied from :
+ * https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/ownership/Ownable.sol
  *
  * @dev Contract module which provides a basic access control mechanism, where
  * there is an account (an owner) that can be granted exclusive access to
