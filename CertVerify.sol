@@ -71,7 +71,7 @@ contract CertVerify is Ownable {
    
     modifier onlyValidStudents(string memory _email)  {
         require(keccak256(abi.encodePacked(students[studentsReverseMapping[_email]].email)) 
-        == keccak256(abi.encodePacked(_email)), "Email already exist");
+        == keccak256(abi.encodePacked(_email)), "Email does not exist");
         _;
    }
     
