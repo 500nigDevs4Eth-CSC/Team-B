@@ -1,8 +1,11 @@
-pragma solidity >=0.5.0 < 0.6.0;
+pragma solidity ^0.5.0;
 
 import "./Ownable.sol";
+import "./SafeMath.sol";
 
 contract CertVerify is Ownable {
+    
+    using SafeMath for uint;
     
     uint public maxAdmins = 2;
     uint public adminIndex = 0;
@@ -89,7 +92,7 @@ contract CertVerify is Ownable {
         require(admins[_newAdmin].authorized = false, "Already an admin");
         admins[_newAdmin] = admin;
         adminsReverseMapping[adminIndex] = _newAdmin;
-        adminIndex++;                                                                                             //safemath
+        adminIndex = adminIndex.add(1);
         //emit AdminAdded(address _newAdmin);
     }
     
@@ -103,39 +106,73 @@ contract CertVerify is Ownable {
         require(adminIndex > 1, "Cannot operate without admin");
         require(admins[_admin].authorized = true, "Not an admin");
         delete admins[_admin].Id;
-        adminIndex--;                                                                                               //safemath
+        adminIndex = adminIndex.sub(1);
     }
     
-    //Create the Student struct on the current studentIndex, pass assignment index as 0 and set the student as active
-    
-    function addStudent(bytes32 _firstName, bytes32 _lastName, bytes32 _commendation, grades _grades, string memory _email) public onlyAdmins onlyNonExistentStudents(_email) returns(bool) {
-        
-            Student memory student = students[studentIndex];
-            student.firstName = _firstName;
-            student.lastName = _lastName;
-            student.commendation = _commendation;
-            //student.grades = _grades;                                                                             //check how to include enums
-            student.email = _email;
-            student.assignmentIndex = 0;
-            student.active = true;
-            studentsReverseMapping[_email] = studentIndex;
-            return true;
-            studentIndex++;                                                                                         //safemath
+    function addStudent(bytes32 _firstName, bytes32 _lastName, bytes32 _commendation, bytes32 _grades, string memory _email) public onlyAdmins onlyNonExistentStudents(_email) {
+        Student memory student = students[studentIndex];
+        student.firstName = _firstName;
+        student.lastName = _lastName;
+        student.commendation = _commendation;
+        student.grades = _grades;                                                                             
+        student.email = _email;
+        student.assignmentIndex = 0;
+        student.active = true;
+        studentsReverseMapping[_email] = studentIndex;
+        studentIndex = studentIndex.add(1); 
             //emit StudentAdded
     }
     
-    function removeStudent(string memory _email) public onlyAdmins onlyValidStudents(_email) returns(bool) {
+    function removeStudent(string memory _email) public onlyAdmins onlyValidStudents(_email) {
         Student memory student = students[studentIndex];
         studentsReverseMapping[_email] = studentIndex;
         student.active = false;
-        studentIndex--;                                                                                             //safemath
-        return true;
+        studentIndex = studentIndex.sub(1);  
         //emit studentRemoved
     }
     
     function changeAdminLimit(uint _newAdminLimit) public {
-        require(_newAdminLimit > 1 && adminIndex, "Cannot have lesser admins");
-        maxAdmins += _newAdminLimit;                                                                                //safemath
+        require(_newAdminLimit > 1 && _newAdminLimit > adminIndex, "Cannot have lesser admins");
+        maxAdmins = maxAdmins.add(_newAdminLimit); 
         //event AdminLimitChanged
     }
+  
+    function changeStudentName(bytes32 _firstName, bytes32 _lastName, string memory _email) public onlyAdmins onlyValidStudents(_email) {
+        Student memory student = students[studentIndex];
+        studentsReverseMapping[_email] = studentIndex;
+        student.firstName = _firstName;
+        student.lastName = _lastName;
+        //emit
+    }
+    
+    function changeStudentCommendation(bytes32 _commendation, string memory _email) public onlyAdmins onlyValidStudents(_email) {
+        Student memory student = students[studentIndex];
+        studentsReverseMapping[_email] = studentIndex;
+        student.commendation = _commendation;
+        //emit
+    }
+    
+    //function changeStudentGrade(bytes32 _grades, string memory _email) public onlyAdmins onlyValidStudents(_email) {
+    //    Student memory student = students[studentIndex];
+    //    studentsReverseMapping[_email] = studentIndex;
+    //    Grades = grades._grades;
+    //    emit
+    //}
+    
+    function changeStudentEmail(string memory _email) public onlyAdmins onlyValidStudents(_email) {
+        Student memory student = students[studentIndex];
+        studentsReverseMapping[_email] = studentIndex;
+        student.email = _email;
+        //emit
+    }
+
+    //function _calcAndFetchAssignmentIndex
+
+//Passes Student struct as storage and indicator boolean (isFinalProject) to tell if the project is final project or just an assignment
+//Calculates and returns the index of the assignment for that particular student based on the following conditions
+//If it is the final project then as per requirements assignmentIndex 0 is reserved for it and hence that is returned
+//Else, it is a new assignment which means that we pull the assignmentIndex of the particular student, increment it using SafeMath and then return that value 
+//Since the value returned can either be 0 or the new assignment index, it is recommended to return a memory uint (though do store the new assignment index in the student struct)
+    //}
+    
 }
