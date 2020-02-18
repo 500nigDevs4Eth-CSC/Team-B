@@ -4,6 +4,8 @@ import "./Ownable.sol";
 import "./SafeMath.sol";
 
 contract CertVerify is Ownable {
+   
+    using SafeMath for uint;
     
     uint public maxAdmins;
     uint public adminIndex = 0;
@@ -84,18 +86,18 @@ contract CertVerify is Ownable {
             "Email does not exist"
         );
         _;
-   }
+    }
     
-   event AdminAdded(address _newAdmin, uint indexed _maxAdminNum);
-    event AdminRemoved(address _newAdmin, uint indexed _maxAdminNum);
+    event AdminAdded(address _newAdmin, uint indexed _maxAdminNum);
+    event AdminRemoved(address _newAdmin, uint indexed adminIndex);
     event AdminLimitChanged(uint _newAdminLimit);
-    event addStudent(bytes32 _firstName, bytes32 _lastName, bytes32 _commendation, grades _grades, string memory _email)
+    event addStudent(bytes32 _firstName, bytes32 _lastName, bytes32 _commendation, bytes32 _grades, string _email);
     event StudentRemoved(string _email);
-    event StudentNameUpdated(string _email, string _newFirstName, string _newLastName);
-    event StudentCommendationUpdated(string _email, string _newCommendation);
+    event StudentNameUpdated(string _email, bytes32 _newFirstName, bytes32 _newLastName);
+    event StudentCommendationUpdated(string _email, bytes32 _newCommendation);
     event StudentGradeUpdated(string _email, uint _studentGrade);
     event StudentEmailUpdated(string _oldEmail, string _newEmail);
-    // event AssignmentAdded(string _studentEmail, string _newEmail);
+    //event AssignmentAdded(string _studentEmail, string _newEmail);
     event AssignmentUpdated(string _studentEmail, uint indexed _assignmentIndex, string _status);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
@@ -119,7 +121,6 @@ contract CertVerify is Ownable {
         adminsReverseMapping[adminIndex] = _newAdmin;
         adminIndex = adminIndex.add(1);
         emit AdminAdded(_newAdmin, adminIndex);
-        //emit AdminAdded(address _newAdmin);
     }
 
     function removeAdmin(address _admin) public onlyOwner {
@@ -133,6 +134,7 @@ contract CertVerify is Ownable {
         require(admins[_admin].authorized = true, "Not an admin");
         delete admins[_admin].Id;
         adminIndex = adminIndex.sub(1);
+        emit AdminRemoved(_admin, adminIndex);
     }
 
     function addStudent(
@@ -152,8 +154,7 @@ contract CertVerify is Ownable {
         student.active = true;
         studentsReverseMapping[_email] = studentIndex;
         studentIndex = studentIndex.add(1);
-        addStudent(_firstName, _lastName, _commendation, _grades, _email)
-        //emit StudentAdded
+        emit addStudent(_firstName, _lastName, _commendation, _grades, _email);
     }
 
     function removeStudent(string memory _email)
@@ -164,16 +165,14 @@ contract CertVerify is Ownable {
         Student memory student = students[studentIndex];
         studentsReverseMapping[_email] = studentIndex;
         student.active = false;
-        studentIndex--;                                                                                             //safemath
-        return true;
+        studentIndex = studentIndex.sub(1);                           
         emit StudentRemoved(_email);
     }
     
     function changeAdminLimit(uint _newAdminLimit) public {
-        require(_newAdminLimit > 1 && adminIndex, "Cannot have lesser admins");
-        maxAdmins = _newAdminLimit; 
-        emit AdminLimitChanged(maxAdmins);                                                                               //safemath
-        //event AdminLimitChanged
+        require(_newAdminLimit > 1 && _newAdminLimit > adminIndex, "Cannot have lesser admins");
+        maxAdmins = maxAdmins.add(_newAdminLimit); 
+        emit AdminLimitChanged(maxAdmins);                
     }
 
     function changeStudentName(string memory _email, bytes32 _newFirstName, bytes32 _newLastName) public onlyAdmins onlyValidStudents(_email){
@@ -183,19 +182,20 @@ contract CertVerify is Ownable {
         student.lastName = _newLastName; 
         emit StudentNameUpdated(_email, _newFirstName, _newLastName);
     }
-
+    
     function changeStudentCommendation(string memory _email, bytes32 _newCommendation ) public onlyAdmins onlyValidStudents(_email){
         studentsReverseMapping[_email] = studentIndex;
         Student memory student = students[studentIndex];
         student.commendation = _newCommendation;
         emit StudentCommendationUpdated(_email, _newCommendation);
     }
-
+    
+    //To be rechecked after completion
     function changeStudentGrade(string memory _email, grades _grade ) public onlyAdmins onlyValidStudents(_email) {
         studentsReverseMapping[_email] = studentIndex;
         Student memory student = students[studentIndex];
-        student.grade = _grade;
-        emit StudentGradeUpdated(_email, _grade);
+   //     student.grade = _grade;
+    //    emit StudentGradeUpdated(_email, _grade);
 
     }
 
@@ -205,21 +205,18 @@ contract CertVerify is Ownable {
         student.email = _newEmail;
         emit StudentEmailUpdated(_email, _newEmail);
     }
-// onlyValidStudents
-
-// Overriding Ownable Functions
 
     function transferOwnership(address _newOwner) public onlyAdmins {
         removeAdmin(msg.sender);
-        addAdmin( _newOwner);
+        addAdmin(_newOwner);
         transferOwnership(_newOwner);
-        OwnershipTransferred(msg.sender, _newOwner);
+        emit OwnershipTransferred(msg.sender, _newOwner);
 
     }
 
     function renounceOwnership() public onlyAdmins{
         removeAdmin(msg.sender);
-        // AdminRemoved(address _newAdmin, _maxAdminNum);
         renounceOwnership();
+        //emit AdminRemoved(address _newAdmin, _maxAdminNum);
     }
 }
