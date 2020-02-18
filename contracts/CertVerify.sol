@@ -118,6 +118,7 @@ contract CertVerify is Ownable {
         admins[_newAdmin] = admin;
         adminsReverseMapping[adminIndex] = _newAdmin;
         adminIndex = adminIndex.add(1);
+        emit AdminAdded(_newAdmin, adminIndex);
         //emit AdminAdded(address _newAdmin);
     }
 
@@ -151,6 +152,7 @@ contract CertVerify is Ownable {
         student.active = true;
         studentsReverseMapping[_email] = studentIndex;
         studentIndex = studentIndex.add(1);
+        addStudent(_firstName, _lastName, _commendation, _grades, _email)
         //emit StudentAdded
     }
 
