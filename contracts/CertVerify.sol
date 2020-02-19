@@ -2,10 +2,12 @@ pragma solidity ^0.5.0;
 
 import "./Ownable.sol";
 import "./SafeMath.sol";
+import "./SafeMath16.sol";
 
 contract CertVerify is Ownable {
    
     using SafeMath for uint;
+    using SafeMath16 for uint16;
     
     uint public maxAdmins;
     uint public adminIndex = 0;
@@ -32,18 +34,18 @@ contract CertVerify is Ownable {
 
     struct Assignment {
         string link;
-        bytes32 assignmentStatus;
+        assignmentStatus status;
     }
 
     struct Student {
         bytes32 firstName;
         bytes32 lastName;
         bytes32 commendation;
-        bytes32 grades;
+        grades grade;
         uint16 assignmentIndex;
         bool active;
         string email;
-        uint16 assignments;
+        mapping(uint => Assignment) assignments;
     }
 
     mapping(address => Admin) public admins;
@@ -91,13 +93,13 @@ contract CertVerify is Ownable {
     event AdminAdded(address _newAdmin, uint indexed _maxAdminNum);
     event AdminRemoved(address _newAdmin, uint indexed adminIndex);
     event AdminLimitChanged(uint _newAdminLimit);
-    event addStudent(bytes32 _firstName, bytes32 _lastName, bytes32 _commendation, bytes32 _grades, string _email);
+    event StudentAdded(bytes32 _firstName, bytes32 _lastName, bytes32 _commendation, grades _grade, string _email);
     event StudentRemoved(string _email);
     event StudentNameUpdated(string _email, bytes32 _newFirstName, bytes32 _newLastName);
     event StudentCommendationUpdated(string _email, bytes32 _newCommendation);
-    event StudentGradeUpdated(string _email, uint _studentGrade);
+    event StudentGradeUpdated(string _email, grades _studentGrade);
     event StudentEmailUpdated(string _oldEmail, string _newEmail);
-    //event AssignmentAdded(string _studentEmail, string _newEmail);
+    event AssignmentAdded(string _email, string _assignmentLink, assignmentStatus _status, uint16 _assignmentIndex);
     event AssignmentUpdated(string _studentEmail, uint indexed _assignmentIndex, string _status);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
@@ -106,15 +108,17 @@ contract CertVerify is Ownable {
         _addAdmin(msg.sender);
     }
 
-    function addAdmin(address _newAdmin)
-        public
-        onlyOwner
-        onlyPermissibleAdminLimit
+    function addAdmin(
+        address _newAdmin
+        ) public onlyOwner onlyPermissibleAdminLimit
     {
         _addAdmin(_newAdmin);
     }
 
-    function _addAdmin(address _newAdmin) internal returns (string memory) {
+    function _addAdmin(
+        address _newAdmin
+        ) internal returns (string memory) 
+    {
         Admin memory admin = admins[_newAdmin];
         require(admins[_newAdmin].authorized = false, "Already an admin");
         admins[_newAdmin] = admin;
@@ -123,12 +127,18 @@ contract CertVerify is Ownable {
         emit AdminAdded(_newAdmin, adminIndex);
     }
 
-    function removeAdmin(address _admin) public onlyOwner {
+    function removeAdmin(
+        address _admin
+        ) public onlyOwner 
+    {
         require(_admin != owner(), "Cannot remove owner");
         _removeAdmin(_admin);
     }
 
-    function _removeAdmin(address _admin) internal returns (string memory) {
+    function _removeAdmin(
+        address _admin
+        ) internal returns (string memory) 
+    {
         require(_admin != owner(), "Cannot remove owner");
         require(adminIndex > 1, "Cannot operate without admin");
         require(admins[_admin].authorized = true, "Not an admin");
@@ -141,26 +151,26 @@ contract CertVerify is Ownable {
         bytes32 _firstName,
         bytes32 _lastName,
         bytes32 _commendation,
-        bytes32 _grades,
+        grades _grade,
         string memory _email
-    ) public onlyAdmins onlyNonExistentStudents(_email) {
+        ) public onlyAdmins onlyNonExistentStudents(_email) 
+    {
         Student memory student = students[studentIndex];
         student.firstName = _firstName;
         student.lastName = _lastName;
         student.commendation = _commendation;
-        student.grades = _grades;
+        student.grade = _grade;
         student.email = _email;
         student.assignmentIndex = 0;
         student.active = true;
         studentsReverseMapping[_email] = studentIndex;
         studentIndex = studentIndex.add(1);
-        emit addStudent(_firstName, _lastName, _commendation, _grades, _email);
+        emit StudentAdded(_firstName, _lastName, _commendation, _grade, _email);
     }
 
-    function removeStudent(string memory _email)
-        public
-        onlyAdmins
-        onlyValidStudents(_email)
+    function removeStudent(
+        string memory _email
+        ) public onlyAdmins onlyValidStudents(_email)
     {
         Student memory student = students[studentIndex];
         studentsReverseMapping[_email] = studentIndex;
@@ -169,13 +179,21 @@ contract CertVerify is Ownable {
         emit StudentRemoved(_email);
     }
     
-    function changeAdminLimit(uint _newAdminLimit) public {
+    function changeAdminLimit(
+        uint _newAdminLimit
+        ) public 
+    {
         require(_newAdminLimit > 1 && _newAdminLimit > adminIndex, "Cannot have lesser admins");
         maxAdmins = maxAdmins.add(_newAdminLimit); 
         emit AdminLimitChanged(maxAdmins);                
     }
 
-    function changeStudentName(string memory _email, bytes32 _newFirstName, bytes32 _newLastName) public onlyAdmins onlyValidStudents(_email){
+    function changeStudentName(
+        string memory _email, 
+        bytes32 _newFirstName, 
+        bytes32 _newLastName
+        ) public onlyAdmins onlyValidStudents(_email)
+    {
         studentsReverseMapping[_email] = studentIndex;
         Student memory student = students[studentIndex];
         student.firstName = _newFirstName;
@@ -183,23 +201,34 @@ contract CertVerify is Ownable {
         emit StudentNameUpdated(_email, _newFirstName, _newLastName);
     }
     
-    function changeStudentCommendation(string memory _email, bytes32 _newCommendation ) public onlyAdmins onlyValidStudents(_email){
+    function changeStudentCommendation(
+        string memory _email, 
+        bytes32 _newCommendation 
+        ) public onlyAdmins onlyValidStudents(_email)
+    {
         studentsReverseMapping[_email] = studentIndex;
         Student memory student = students[studentIndex];
         student.commendation = _newCommendation;
         emit StudentCommendationUpdated(_email, _newCommendation);
     }
     
-    //To be rechecked after completion
-    function changeStudentGrade(string memory _email, grades _grade ) public onlyAdmins onlyValidStudents(_email) {
+    function changeStudentGrade(
+        string memory _email, 
+        grades _grade 
+        ) public onlyAdmins onlyValidStudents(_email) 
+    {
         studentsReverseMapping[_email] = studentIndex;
         Student memory student = students[studentIndex];
-   //     student.grade = _grade;
-    //    emit StudentGradeUpdated(_email, _grade);
+        student.grade = _grade;
+        emit StudentGradeUpdated(_email, _grade);
 
     }
 
-    function changeStudentEmail(string memory _email, string memory _newEmail) public onlyAdmins onlyValidStudents(_email){
+    function changeStudentEmail(
+        string memory _email, 
+        string memory _newEmail
+        ) public onlyAdmins onlyValidStudents(_email)
+    {
         studentsReverseMapping[_email] = studentIndex;
         Student memory student = students[studentIndex];
         student.email = _newEmail;
@@ -217,6 +246,35 @@ contract CertVerify is Ownable {
     function renounceOwnership() public onlyAdmins{
         removeAdmin(msg.sender);
         renounceOwnership();
-        //emit AdminRemoved(address _newAdmin, _maxAdminNum);
+        //emit AdminRemoved(_newAdmin, _maxAdminNum);
+    }
+
+    function _calcAndFetchAssignmentIndex(
+        Student storage _student, 
+        bool _isFinalProject
+        ) internal pure returns(uint16 assignmentIndex) 
+    {
+        Student memory student;
+        if (_isFinalProject == true) {
+            return student.assignmentIndex = 0;
+        } else {
+            return student.assignmentIndex.add(1);
+        } 
+    }
+    
+    function addAssignment(
+        string memory _email, 
+        string memory _assignmentLink, 
+        assignmentStatus _status, 
+        bool _isFinalProject
+        ) public onlyAdmins onlyValidStudents(_email) 
+    {
+        studentsReverseMapping[_email] = studentIndex;
+        _calcAndFetchAssignmentIndex(students[studentIndex], _isFinalProject);
+        Assignment memory assignment;
+        assignment.link = _assignmentLink;
+        assignment.status =  _status;
+        emit AssignmentAdded(_email, _assignmentLink, _status, _calcAndFetchAssignmentIndex(students[studentIndex], _isFinalProject));
+        
     }
 }
