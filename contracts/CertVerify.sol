@@ -55,7 +55,7 @@ contract CertVerify is Ownable {
     }
 
     modifier onlyNonOwnerAdmins(address _addr) {
-        require(_addr != owner(), "only none-owner admin");
+        require(_addr != owner(), "only non-owner admin");
         _;
     }
 
@@ -86,7 +86,7 @@ contract CertVerify is Ownable {
         _;
    }
     
-   event AdminAdded(address _newAdmin, uint indexed _maxAdminNum);
+    event AdminAdded(address _newAdmin, uint indexed _maxAdminNum);
     event AdminRemoved(address _newAdmin, uint indexed _maxAdminNum);
     event AdminLimitChanged(uint _newAdminLimit);
     event addStudent(bytes32 _firstName, bytes32 _lastName, bytes32 _commendation, grades _grades, string memory _email)
