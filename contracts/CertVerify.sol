@@ -25,23 +25,23 @@ contract CertVerify is Ownable {
     
     struct Admin {
         bool authorized;
-        uint256 Id;
+        uint Id;
     }
 
     struct Assignment {
         string link;
-        bytes32 assignmentStatus;
+        assignmentStatus _assignmentStatus;
     }
 
     struct Student {
         bytes32 firstName;
         bytes32 lastName;
         bytes32 commendation;
-        bytes32 grades;
+        grades grade;
         uint16 assignmentIndex;
         bool active;
         string email;
-        uint16 assignments;
+        mapping(assignmentIndex => Assignment) assignments;
     }
 
     mapping(address => Admin) public admins;
@@ -89,7 +89,7 @@ contract CertVerify is Ownable {
    event AdminAdded(address _newAdmin, uint indexed _maxAdminNum);
     event AdminRemoved(address _newAdmin, uint indexed _maxAdminNum);
     event AdminLimitChanged(uint _newAdminLimit);
-    event addStudent(bytes32 _firstName, bytes32 _lastName, bytes32 _commendation, grades _grades, string memory _email)
+    event addStudent(string _email, bytes32 _firstName, bytes32 _lastName, bytes32 _commendation, grades _grades)
     event StudentRemoved(string _email);
     event StudentNameUpdated(string _email, string _newFirstName, string _newLastName);
     event StudentCommendationUpdated(string _email, string _newCommendation);
@@ -139,7 +139,7 @@ contract CertVerify is Ownable {
         bytes32 _firstName,
         bytes32 _lastName,
         bytes32 _commendation,
-        bytes32 _grades,
+        grades _grades,
         string memory _email
     ) public onlyAdmins onlyNonExistentStudents(_email) {
         Student memory student = students[studentIndex];
@@ -152,7 +152,7 @@ contract CertVerify is Ownable {
         student.active = true;
         studentsReverseMapping[_email] = studentIndex;
         studentIndex = studentIndex.add(1);
-        addStudent(_firstName, _lastName, _commendation, _grades, _email)
+        emit addStudent(_firstName, _lastName, _commendation, _grades, _email);
         //emit StudentAdded
     }
 
@@ -221,5 +221,20 @@ contract CertVerify is Ownable {
         removeAdmin(msg.sender);
         // AdminRemoved(address _newAdmin, _maxAdminNum);
         renounceOwnership();
+    }
+
+    function updateAssignmentStatus(
+        string memory _email, 
+        assignmentStatus _assignmentStatus, 
+        bool isFinalProject
+        )public onlyAdmins onlyValidStudents(_email)
+    {
+        studentsReverseMapping[_email] = studentIndex;
+        Student memory student = students[studentIndex];
+        _calcAndFetchAssignmentIndex(student, isFinalProject);
+
+        Assignment._assignmentStatus = _assignmentStatus;
+        emit AssignmentUpdated(_email, _assignmentIndex, _assignmentStatus);
+
     }
 }
