@@ -313,4 +313,28 @@ contract CertVerify is Ownable {
         emit AssignmentUpdated(_email, _assignmentIndex, _assignmentStatus);
 
     }
+
+    function getAssignmentInfo (
+        string memory _email, 
+        uint16 _assignmentIndex
+        ) public onlyValidStudents(_email) returns(string memory, string memory) 
+    {
+        return _getAssignmentInfo;
+    }
+    
+    function _getAssignmentInfo (
+        string memory _email, 
+        uint16 _assignmentIndex
+        ) internal onlyValidStudents(_email) returns(string memory assignmentLink) 
+    {
+        studentsReverseMapping[_email] = studentIndex;
+        Student memory student = students[studentIndex];
+        Assignment memory assignment;
+        student.email = _email;
+        student.assignmentIndex = _assignmentIndex;
+        require(_assignmentIndex >= 0, 'Cannot be less than 0');
+        require(_assignmentIndex <= assignmentList.length, 'Cannot be more than permissible limit');
+        return assignment.link;
+        return assignment.status;
+    }
 }
