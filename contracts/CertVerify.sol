@@ -36,7 +36,7 @@ contract CertVerify is Ownable {
         string link;
         assignmentStatus status;
     }
-
+    
     struct Student {
         bytes32 firstName;
         bytes32 lastName;
@@ -45,26 +45,41 @@ contract CertVerify is Ownable {
         uint16 assignmentIndex;
         bool active;
         string email;
-        mapping(uint => Assignment) assignments;
+        mapping(uint16 => Assignment) assignments;
     }
 
     mapping(address => Admin) public admins;
-    mapping(uint256 => address) public adminsReverseMapping;
-    mapping(uint256 => Student) public students;
-    mapping(string => uint256) public studentsReverseMapping;
+    mapping(uint => address) public adminsReverseMapping;
+    mapping(uint => Student) public students;
+    mapping(string => uint) public studentsReverseMapping;
+    Assignment[] assignmentList;
+    
+    event AdminAdded(address _newAdmin, uint indexed _maxAdminNum);
+    event AdminRemoved(address _newAdmin, uint indexed adminIndex);
+    event AdminLimitChanged(uint _newAdminLimit);
+    event StudentAdded(bytes32 _firstName, bytes32 _lastName, bytes32 _commendation, grades _grade, string _email);
+    event StudentRemoved(string _email);
+    event StudentNameUpdated(string _email, bytes32 _newFirstName, bytes32 _newLastName);
+    event StudentCommendationUpdated(string _email, bytes32 _newCommendation);
+    event StudentGradeUpdated(string _email, grades _studentGrade);
+    event StudentEmailUpdated(string _oldEmail, string _newEmail);
+    event AssignmentAdded(string _email, string _assignmentLink, assignmentStatus _status, uint16 _assignmentIndex);
+    event AssignmentUpdated(string _studentEmail, uint indexed _assignmentIndex, assignmentStatus _status);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     modifier onlyAdmins() {
         require(admins[msg.sender].authorized = true, "Only admins allowed");
         _;
     }
-
+    
     modifier onlyNonOwnerAdmins(address _addr) {
-        require(_addr != owner(), "only none-owner admin");
+        require(admins[_addr].authorized = true, "Only admins allowed");
+        require(_addr != owner(), "Only none-owner admin");
         _;
     }
 
     modifier onlyPermissibleAdminLimit() {
-        require(adminIndex <= 1, "Maximum admins already");
+        require(adminIndex <= maxAdmins, "Maximum admins already");
         _;
     }
 
@@ -89,19 +104,6 @@ contract CertVerify is Ownable {
         );
         _;
     }
-    
-    event AdminAdded(address _newAdmin, uint indexed _maxAdminNum);
-    event AdminRemoved(address _newAdmin, uint indexed adminIndex);
-    event AdminLimitChanged(uint _newAdminLimit);
-    event StudentAdded(bytes32 _firstName, bytes32 _lastName, bytes32 _commendation, grades _grade, string _email);
-    event StudentRemoved(string _email);
-    event StudentNameUpdated(string _email, bytes32 _newFirstName, bytes32 _newLastName);
-    event StudentCommendationUpdated(string _email, bytes32 _newCommendation);
-    event StudentGradeUpdated(string _email, grades _studentGrade);
-    event StudentEmailUpdated(string _oldEmail, string _newEmail);
-    event AssignmentAdded(string _email, string _assignmentLink, assignmentStatus _status, uint16 _assignmentIndex);
-    event AssignmentUpdated(string _studentEmail, uint indexed _assignmentIndex, string _status);
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     constructor() public {
         maxAdmins = 2;
@@ -117,10 +119,12 @@ contract CertVerify is Ownable {
 
     function _addAdmin(
         address _newAdmin
-        ) internal returns (string memory) 
+        ) internal 
     {
-        Admin memory admin = admins[_newAdmin];
-        require(admins[_newAdmin].authorized = false, "Already an admin");
+        if(admins[_newAdmin].authorized == true) {
+        } else {
+        admins[_newAdmin].authorized = true;
+        } Admin memory admin = admins[_newAdmin];
         admins[_newAdmin] = admin;
         adminsReverseMapping[adminIndex] = _newAdmin;
         adminIndex = adminIndex.add(1);
@@ -137,7 +141,7 @@ contract CertVerify is Ownable {
 
     function _removeAdmin(
         address _admin
-        ) internal returns (string memory) 
+        ) internal
     {
         require(_admin != owner(), "Cannot remove owner");
         require(adminIndex > 1, "Cannot operate without admin");
@@ -146,7 +150,7 @@ contract CertVerify is Ownable {
         adminIndex = adminIndex.sub(1);
         emit AdminRemoved(_admin, adminIndex);
     }
-
+    
     function addStudent(
         bytes32 _firstName,
         bytes32 _lastName,
@@ -177,14 +181,14 @@ contract CertVerify is Ownable {
         student.active = false;
         studentIndex = studentIndex.sub(1);                           
         emit StudentRemoved(_email);
-    }
+    } 
     
     function changeAdminLimit(
         uint _newAdminLimit
         ) public 
     {
         require(_newAdminLimit > 1 && _newAdminLimit > adminIndex, "Cannot have lesser admins");
-        maxAdmins = maxAdmins.add(_newAdminLimit); 
+        maxAdmins = _newAdminLimit; 
         emit AdminLimitChanged(maxAdmins);                
     }
 
@@ -200,7 +204,7 @@ contract CertVerify is Ownable {
         student.lastName = _newLastName; 
         emit StudentNameUpdated(_email, _newFirstName, _newLastName);
     }
-    
+
     function changeStudentCommendation(
         string memory _email, 
         bytes32 _newCommendation 
@@ -235,30 +239,35 @@ contract CertVerify is Ownable {
         emit StudentEmailUpdated(_email, _newEmail);
     }
 
-    function transferOwnership(address _newOwner) public onlyAdmins {
+    function transferOwnership(
+        address _newOwner
+        ) public onlyAdmins 
+    {
         removeAdmin(msg.sender);
         addAdmin(_newOwner);
-        transferOwnership(_newOwner);
+        super.transferOwnership(_newOwner);
         emit OwnershipTransferred(msg.sender, _newOwner);
 
     }
 
-    function renounceOwnership() public onlyAdmins{
+    function renounceOwnership(
+        ) public onlyAdmins
+    {
         removeAdmin(msg.sender);
-        renounceOwnership();
-        //emit AdminRemoved(_newAdmin, _maxAdminNum);
+        super.renounceOwnership();
+        emit OwnershipTransferred(msg.sender, address(0));
     }
 
     function _calcAndFetchAssignmentIndex(
         Student storage _student, 
         bool _isFinalProject
-        ) internal pure returns(uint16 assignmentIndex) 
+        ) internal returns(uint16 assignmentIndex) 
     {
-        Student memory student;
+        //Student memory student;
         if (_isFinalProject == true) {
-            return student.assignmentIndex = 0;
+            return _student.assignmentIndex = 0;
         } else {
-            return student.assignmentIndex.add(1);
+            return _student.assignmentIndex.add(1);
         } 
     }
     
@@ -276,5 +285,34 @@ contract CertVerify is Ownable {
         assignment.status =  _status;
         emit AssignmentAdded(_email, _assignmentLink, _status, _calcAndFetchAssignmentIndex(students[studentIndex], _isFinalProject));
         
+    }
+    
+    function updateAssignmentStatus(
+        string memory _email, 
+        assignmentStatus _assignmentStatus, 
+        bool _isFinalProject
+        )public onlyAdmins onlyValidStudents(_email)
+    {
+        studentsReverseMapping[_email] = studentIndex;
+        _calcAndFetchAssignmentIndex(students[studentIndex], _isFinalProject);
+        Assignment memory assignment;
+        assignment.status = _assignmentStatus;
+        emit AssignmentUpdated(_email, _calcAndFetchAssignmentIndex(students[studentIndex], _isFinalProject), _assignmentStatus);
+
+    }
+    
+    function getAssignmentInfo (
+        string memory _email, 
+        uint16 _assignmentIndex
+        ) public onlyValidStudents(_email) returns(string memory assignmentLink, assignmentStatus status) 
+    {
+        studentsReverseMapping[_email] = studentIndex;
+        Student memory student = students[studentIndex];
+        Assignment memory assignment;
+        student.email = _email;
+        student.assignmentIndex = _assignmentIndex;
+        require(_assignmentIndex >= 0, 'Cannot be less than 0');
+        require(_assignmentIndex <= assignmentList.length, 'Cannot be more than permissible limit');
+        return (assignment.link, assignment.status);
     }
 }
