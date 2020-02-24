@@ -84,6 +84,10 @@ contract CertVerify is Ownable {
     event AssignmentUpdated(string _studentEmail, uint indexed _assignmentIndex, assignmentStatus _status);
     // OwnershipTransferred Event
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    // EtherDonated Event
+    event EtherDonated(address indexed _addr, uint _value);
+    // EtherWithdrawn Event
+    event EtherWithdrawn(address indexed _addr, uint _value);
 
     // Modifiers
     // onlyAdmins Modifier
@@ -297,7 +301,6 @@ contract CertVerify is Ownable {
         bool _isFinalProject
         ) internal returns(uint16 assignmentIndex) 
     {
-        //Student memory student;
         if (_isFinalProject == true) {
             return _student.assignmentIndex = 0;
         } else {
@@ -318,8 +321,7 @@ contract CertVerify is Ownable {
         assignment.link = _assignmentLink;
         assignment.status =  _status;
         // Trigger AssignmentAdded
-        emit AssignmentAdded(_email, _assignmentLink, _status, _calcAndFetchAssignmentIndex(students[studentIndex], _isFinalProject));
-        
+        emit AssignmentAdded(_email, _assignmentLink, _status, _calcAndFetchAssignmentIndex(students[studentIndex], _isFinalProject));     
     }
     
     function updateAssignmentStatus(
@@ -334,7 +336,6 @@ contract CertVerify is Ownable {
         assignment.status = _assignmentStatus;
         // Trigger AssignmentUpdated
         emit AssignmentUpdated(_email, _calcAndFetchAssignmentIndex(students[studentIndex], _isFinalProject), _assignmentStatus);
-
     }
     
     function getAssignmentInfo (
@@ -351,4 +352,28 @@ contract CertVerify is Ownable {
         require(_assignmentIndex <= assignmentList.length, 'Cannot be more than permissible limit');
         return (assignment.link, assignment.status);
     }
+    
+    function donateEth(
+        ) external payable 
+    {
+        if(msg.value < 0.005 ether) {
+            revert();
+        }
+	// Trigger EtherDonated
+        emit EtherDonated(address(this), msg.value);
+    }
+    
+    function withdrawEth(
+        ) public payable onlyOwner returns (bool success)
+    {
+        address payable _owner;
+        _owner = address(uint(owner()));
+        uint bal;
+        bal = address(this).balance;
+        _owner.transfer(bal);
+	// Trigger EtherWithdrawn
+        emit EtherWithdrawn(msg.sender, bal);
+        return true;
+    }
+    
 }
