@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
 
-import "./CertVerify.sol";
+import "../GSN/CertVerify.sol";
 
 /**
  * Copied from :
@@ -15,11 +15,8 @@ import "./CertVerify.sol";
  * `onlyOwner`, which can be applied to your functions to restrict their use to
  * the owner.
  */
-
-//  Definition of base has to precede definition of derived contract
-// contract Ownable is CertVerify {
-//                     ^--------^
-contract Ownable {
+ 
+contract Ownable is CertVerify {
     address private _owner;
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
@@ -51,12 +48,6 @@ contract Ownable {
     /**
      * @dev Returns true if the caller is the current owner.
      */
-    /*
-    This is the error message I'm getting
-        DeclarationError: Undeclared identifier.
-        return _msgSender() == _owner;
-               ^--------^
-    */
     function isOwner() public view returns (bool) {
         return _msgSender() == _owner;
     }
