@@ -1,10 +1,7 @@
 pragma solidity ^0.5.0;
 
-
-import "./CertVerify.sol";
-
 /**
- * Copied from :
+ * Edited from: 
  * https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/ownership/Ownable.sol
  *
  * @dev Contract module which provides a basic access control mechanism, where
@@ -16,49 +13,32 @@ import "./CertVerify.sol";
  * the owner.
  */
 
-//  Definition of base has to precede definition of derived contract
-// contract Ownable is CertVerify {
-//                     ^--------^
 contract Ownable {
     address private _owner;
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
+    
     /**
      * @dev Initializes the contract setting the deployer as the initial owner.
      */
     constructor () internal {
-        address msgSender = _msgSender();
-        _owner = msgSender;
-        emit OwnershipTransferred(address(0), msgSender);
-    }
-
-    /**
-     * @dev Returns the address of the current owner.
-     */
-    function owner() public view returns (address) {
-        return _owner;
+        _owner = msg.sender;
+        emit OwnershipTransferred(address(0), msg.sender);
     }
 
     /**
      * @dev Throws if called by any account other than the owner.
      */
     modifier onlyOwner() {
-        require(isOwner(), "Ownable: caller is not the owner");
+        require(msg.sender == _owner, "Ownable: caller is not the owner");
         _;
     }
-
+    
     /**
-     * @dev Returns true if the caller is the current owner.
+     * @dev Returns the address of the current owner.
      */
-    /*
-    This is the error message I'm getting
-        DeclarationError: Undeclared identifier.
-        return _msgSender() == _owner;
-               ^--------^
-    */
-    function isOwner() public view returns (bool) {
-        return _msgSender() == _owner;
+    function owner() public view returns (address) {
+        return _owner;
     }
 
     /**
