@@ -54,13 +54,10 @@ contract CertVerify is Ownable {
     mapping(uint => address) public adminsReverseMapping;
     mapping(uint => Student) public students;
     mapping(string => uint) public studentsReverseMapping;
-    
-    // Assignment Array
-    Assignment[] assignmentList;
-    
-   // Events
 
-   // AdminAdded Event
+    // Events
+
+    // AdminAdded Event
     event AdminAdded(address _newAdmin, uint indexed _maxAdminNum);
     // AdminRemoved Event
     event AdminRemoved(address _newAdmin, uint indexed adminIndex);
@@ -95,17 +92,20 @@ contract CertVerify is Ownable {
         require(admins[msg.sender].authorized = true, "Only admins allowed");
         _;
     }
+    
     // onlyNonOwnerAdmins Modifier
     modifier onlyNonOwnerAdmins(address _addr) {
         require(admins[_addr].authorized = true, "Only admins allowed");
         require(_addr != owner(), "Only non-owner admin");
         _;
     }
+    
     // onlyPermissibleAdminLimit Modifier
     modifier onlyPermissibleAdminLimit() {
         require(adminIndex <= maxAdmins, "Maximum admins already");
         _;
     }
+    
     // onlyNonExistentStudents Modifier
     modifier onlyNonExistentStudents(string memory _email) {
         require(
@@ -117,6 +117,7 @@ contract CertVerify is Ownable {
         );
         _;
     }
+    
     // onlyValidStudents Modifier
     modifier onlyValidStudents(string memory _email) {
         require(
@@ -151,7 +152,8 @@ contract CertVerify is Ownable {
         } 
         else {
         admins[_newAdmin].authorized = true;
-        } Admin memory admin = admins[_newAdmin];
+        } 
+        Admin memory admin = admins[_newAdmin];
         admins[_newAdmin] = admin;
         adminsReverseMapping[adminIndex] = _newAdmin;
         adminIndex = adminIndex.add(1);
@@ -171,15 +173,15 @@ contract CertVerify is Ownable {
         address _admin
         ) internal
     {
-        require(_admin != owner(), "Cannot remove owner");
         require(adminIndex > 1, "Cannot operate without admin");
-        require(admins[_admin].authorized = true, "Not an admin");
-        delete admins[_admin].Id;
+        if(admins[_admin].authorized == true){}
+        adminsReverseMapping[adminIndex] = _admin;
+        delete admins[_admin];
         adminIndex = adminIndex.sub(1);
         // Trigger AdminRemoved
         emit AdminRemoved(_admin, adminIndex);
     }
-    
+
     function addStudent(
         bytes32 _firstName,
         bytes32 _lastName,
@@ -188,16 +190,16 @@ contract CertVerify is Ownable {
         string memory _email
         ) public onlyAdmins onlyNonExistentStudents(_email) 
     {
-        Student memory student = students[studentIndex];
+        Student storage student = students[studentIndex];
+        student.assignmentIndex = 0;
+        student.active = true;
         student.firstName = _firstName;
         student.lastName = _lastName;
         student.commendation = _commendation;
         student.grade = _grade;
         student.email = _email;
-        student.assignmentIndex = 0;
-        student.active = true;
         studentsReverseMapping[_email] = studentIndex;
-        studentIndex = studentIndex.add(1);
+        studentIndex = studentIndex.add(1); 
         // Trigger StudentAdded
         emit StudentAdded(_firstName, _lastName, _commendation, _grade, _email);
     }
@@ -206,10 +208,7 @@ contract CertVerify is Ownable {
         string memory _email
         ) public onlyAdmins onlyValidStudents(_email)
     {
-        Student memory student = students[studentIndex];
-        studentsReverseMapping[_email] = studentIndex;
-        student.active = false;
-        studentIndex = studentIndex.sub(1);
+        students[studentsReverseMapping[_email]].active = false;
         // Trigger StudentRemoved            
         emit StudentRemoved(_email);
     } 
@@ -230,10 +229,8 @@ contract CertVerify is Ownable {
         bytes32 _newLastName
         ) public onlyAdmins onlyValidStudents(_email)
     {
-        studentsReverseMapping[_email] = studentIndex;
-        Student memory student = students[studentIndex];
-        student.firstName = _newFirstName;
-        student.lastName = _newLastName; 
+        students[studentsReverseMapping[_email]].firstName = _newFirstName;
+        students[studentsReverseMapping[_email]].lastName = _newLastName; 
         // Trigger StudentNameUpdated  
         emit StudentNameUpdated(_email, _newFirstName, _newLastName);
     }
@@ -243,9 +240,7 @@ contract CertVerify is Ownable {
         bytes32 _newCommendation 
         ) public onlyAdmins onlyValidStudents(_email)
     {
-        studentsReverseMapping[_email] = studentIndex;
-        Student memory student = students[studentIndex];
-        student.commendation = _newCommendation;
+        students[studentsReverseMapping[_email]].commendation = _newCommendation;
         // Trigger StudentCommendationUpdated
         emit StudentCommendationUpdated(_email, _newCommendation);
     }
@@ -255,9 +250,7 @@ contract CertVerify is Ownable {
         grades _grade 
         ) public onlyAdmins onlyValidStudents(_email) 
     {
-        studentsReverseMapping[_email] = studentIndex;
-        Student memory student = students[studentIndex];
-        student.grade = _grade;
+        students[studentsReverseMapping[_email]].grade = _grade;
         // Trigger StudentGradeUpdated
         emit StudentGradeUpdated(_email, _grade);
 
@@ -268,19 +261,17 @@ contract CertVerify is Ownable {
         string memory _newEmail
         ) public onlyAdmins onlyValidStudents(_email)
     {
-        studentsReverseMapping[_email] = studentIndex;
-        Student memory student = students[studentIndex];
-        student.email = _newEmail;
+        students[studentsReverseMapping[_email]].email = _newEmail;
         // Trigger StudentEmailUpdated
         emit StudentEmailUpdated(_email, _newEmail);
     }
 
     function transferOwnership(
         address _newOwner
-        ) public onlyAdmins 
+        ) public onlyOwner 
     {
-        removeAdmin(msg.sender);
-        addAdmin(_newOwner);
+        _removeAdmin(msg.sender);
+        _addAdmin(_newOwner);
         super.transferOwnership(_newOwner);
         // Trigger OwnershipTransferred
         emit OwnershipTransferred(msg.sender, _newOwner);
@@ -288,9 +279,9 @@ contract CertVerify is Ownable {
     }
 
     function renounceOwnership(
-        ) public onlyAdmins
+        ) public onlyOwner
     {
-        removeAdmin(msg.sender);
+        _removeAdmin(msg.sender);
         super.renounceOwnership();
         // Trigger OwnershipTransferred
         emit OwnershipTransferred(msg.sender, address(0));
@@ -311,17 +302,16 @@ contract CertVerify is Ownable {
     function addAssignment(
         string memory _email, 
         string memory _assignmentLink, 
-        assignmentStatus _status, 
+        assignmentStatus _assignmentStatus, 
         bool _isFinalProject
         ) public onlyAdmins onlyValidStudents(_email) 
     {
-        studentsReverseMapping[_email] = studentIndex;
-        _calcAndFetchAssignmentIndex(students[studentIndex], _isFinalProject);
-        Assignment memory assignment;
-        assignment.link = _assignmentLink;
-        assignment.status =  _status;
+        _calcAndFetchAssignmentIndex(students[studentsReverseMapping[_email]], _isFinalProject);
+        students[studentsReverseMapping[_email]].assignments[students[studentsReverseMapping[_email]].assignmentIndex].link = _assignmentLink;
+        students[studentsReverseMapping[_email]].assignments[students[studentsReverseMapping[_email]].assignmentIndex].status = _assignmentStatus;
         // Trigger AssignmentAdded
-        emit AssignmentAdded(_email, _assignmentLink, _status, _calcAndFetchAssignmentIndex(students[studentIndex], _isFinalProject));     
+        emit AssignmentAdded(_email, _assignmentLink, _assignmentStatus, 
+            _calcAndFetchAssignmentIndex(students[studentsReverseMapping[_email]], _isFinalProject));
     }
     
     function updateAssignmentStatus(
@@ -330,34 +320,29 @@ contract CertVerify is Ownable {
         bool _isFinalProject
         )public onlyAdmins onlyValidStudents(_email)
     {
-        studentsReverseMapping[_email] = studentIndex;
-        _calcAndFetchAssignmentIndex(students[studentIndex], _isFinalProject);
-        Assignment memory assignment;
-        assignment.status = _assignmentStatus;
+        _calcAndFetchAssignmentIndex(students[studentsReverseMapping[_email]], _isFinalProject);
+        students[studentsReverseMapping[_email]].assignments[students[studentsReverseMapping[_email]].assignmentIndex].status = _assignmentStatus;
         // Trigger AssignmentUpdated
-        emit AssignmentUpdated(_email, _calcAndFetchAssignmentIndex(students[studentIndex], _isFinalProject), _assignmentStatus);
+        emit AssignmentUpdated(_email, _calcAndFetchAssignmentIndex(students[studentIndex], 
+            _isFinalProject), _assignmentStatus);
     }
     
     function getAssignmentInfo (
         string memory _email, 
         uint16 _assignmentIndex
-        ) public onlyValidStudents(_email) returns(string memory assignmentLink, assignmentStatus status) 
+        ) public view onlyValidStudents(_email) returns(string memory assignmentLink, assignmentStatus status) 
     {
-        studentsReverseMapping[_email] = studentIndex;
-        Student memory student = students[studentIndex];
-        Assignment memory assignment;
-        student.email = _email;
-        student.assignmentIndex = _assignmentIndex;
-        require(_assignmentIndex >= 0, 'Cannot be less than 0');
-        require(_assignmentIndex <= assignmentList.length, 'Cannot be more than permissible limit');
-        return (assignment.link, assignment.status);
+        require(students[studentsReverseMapping[_email]].assignmentIndex >= 0, 'Cannot be less than 0');
+        require(_assignmentIndex <= students[studentsReverseMapping[_email]].assignmentIndex, 'Cannot be more than permissible limit');
+        return(students[studentsReverseMapping[_email]].assignments[_assignmentIndex].link, 
+            students[studentsReverseMapping[_email]].assignments[_assignmentIndex].status);
     }
     
     function donateEth(
         ) external payable 
     {
         if(msg.value < 0.005 ether) {
-            revert();
+            revert('Cannot donate less than 0.005 ether');
         }
 	// Trigger EtherDonated
         emit EtherDonated(address(this), msg.value);
@@ -367,8 +352,8 @@ contract CertVerify is Ownable {
         ) public payable onlyOwner returns (bool success)
     {
         address payable _owner;
-        _owner = address(uint(owner()));
         uint bal;
+        _owner = address(uint(owner()));
         bal = address(this).balance;
         _owner.transfer(bal);
 	// Trigger EtherWithdrawn
